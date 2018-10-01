@@ -29,8 +29,9 @@ public class EventCounter implements IEventCounter {
         this.statistics = new ConcurrentHashMap<>();
         this.maxPeriod = maxPeriod;
         cleanupExecutor.scheduleWithFixedDelay(() -> {
+                    final DateTime statisticsStart = round(DateTime.now()).minus(maxPeriod);
                     final List<DateTime> outdatedStatisticKeys = statistics.entrySet().stream()
-                            .filter(e -> e.getKey().isBefore(round(DateTime.now()).minus(maxPeriod)))
+                            .filter(e -> e.getKey().isBefore(statisticsStart))
                             .map(Map.Entry::getKey)
                             .collect(Collectors.toList());
                     outdatedStatisticKeys.forEach(statistics::remove);
@@ -49,13 +50,14 @@ public class EventCounter implements IEventCounter {
 
     @Override
     public long computeStatistics(final Duration duration) {
+        final DateTime statisticsStart = round(DateTime.now()).minus(duration);
         return statistics.entrySet().stream()
-                .filter(e -> e.getKey().isAfter(round(DateTime.now()).minus(duration)))
+                .filter(e -> e.getKey().isAfter(statisticsStart))
                 .mapToLong(e -> e.getValue().get())
                 .sum();
     }
 
-    private DateTime round(final DateTime value) {
+    private static DateTime round(final DateTime value) {
         return value.withMillisOfSecond(0).withSecondOfMinute(0);
     }
 }
